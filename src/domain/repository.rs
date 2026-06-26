@@ -4,8 +4,8 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 
-use crate::errors::AppError;
-use crate::models::Client;
+use crate::domain::dto;
+use crate::infra::errors::AppError;
 
 static FILE_COUNTER: AtomicU32 = AtomicU32::new(1);
 
@@ -14,7 +14,7 @@ pub fn next_file_counter() -> u32 {
 }
 
 pub struct AppState {
-    clients: HashMap<u64, Client>,
+    clients: HashMap<u64, dto::client::Client>,
     next_id: u64,
 }
 
@@ -32,13 +32,13 @@ impl AppState {
         client_name: String,
         birth_date: NaiveDate,
         country: String,
-    ) -> Result<Client, AppError> {
+    ) -> Result<dto::client::Client, AppError> {
         if self.clients.values().any(|c| c.document_number == document_number) {
             return Err(AppError::ClientAlreadyExists { doc: document_number });
         }
         let client_id = self.next_id;
         self.next_id += 1;
-        let client = Client {
+        let client = dto::client::Client {
             client_id,
             document_number,
             client_name,

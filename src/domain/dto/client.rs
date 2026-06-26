@@ -37,3 +37,24 @@ pub struct TransactionPayload {
     pub client_id: u64,
     pub amount: Decimal,
 }
+
+impl Client {
+    pub fn new(
+        client_id: u64,
+        client_name: String,
+        birth_date: NaiveDate,
+        document_number: String,
+        country: String,
+        balance: Decimal,
+    ) -> Self {
+        Self {
+            client_id,
+            document_number,
+            client_name,
+            birth_date,
+            country,
+            balance,
+        }
+    }
+}
+
