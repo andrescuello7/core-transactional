@@ -6,6 +6,7 @@ use std::fmt;
 pub enum AppError {
     ClientAlreadyExists { doc: String },
     ClientNotFound,
+    DuplicateDocument,
     InsufficientFunds,
     PersistenceError(String),
 }
@@ -17,6 +18,7 @@ impl fmt::Display for AppError {
                 write!(f, "El cliente con documento '{}' ya existe", doc)
             }
             Self::ClientNotFound => write!(f, "Cliente no encontrado"),
+            Self::DuplicateDocument => write!(f, "Documento duplicado"),
             Self::InsufficientFunds => {
                 write!(f, "Fondos insuficientes para realizar la operación")
             }
@@ -31,6 +33,7 @@ impl ResponseError for AppError {
         match self {
             Self::ClientAlreadyExists { .. } => HttpResponse::Conflict().json(body),
             Self::ClientNotFound => HttpResponse::NotFound().json(body),
+            Self::DuplicateDocument => HttpResponse::BadRequest().json(body),
             Self::InsufficientFunds => HttpResponse::UnprocessableEntity().json(body),
             Self::PersistenceError(_) => HttpResponse::InternalServerError().json(body),
         }

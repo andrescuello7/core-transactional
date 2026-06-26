@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.0.3] 2026-06-26
+
+### Changed
+- refactor: Se implemento el storage para el mantenimiento de los datos y guardarlos en disco, por otro lado las rutas de `new_credit_transaction` - `new_debit_transaction` - `store_balances`, dato importante una ves solicitado el repote limpiamos los balance de los usuarios.
+
 ## [0.0.2] 2026-06-26
 
 ### Changed

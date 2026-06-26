@@ -40,6 +40,6 @@ pub async fn new_client(
         },
         // CORRECCIÓN 2: Transformamos dinámicamente el error real que envió el motor 
         // en lugar de asumir que siempre es ClientNotFound.
-        Err(_) => Err(AppError::ClientNotFound), 
+        Err(_) => Err(AppError::DuplicateDocument), 
     }
 }

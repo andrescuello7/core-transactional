@@ -107,7 +107,7 @@ impl TransactionProcessor {
                     // Al procesarse de forma secuencial, mientras estemos en este bloque, 
                     // ningún endpoint de Crédito/Débito puede alterar los saldos.
                     
-                    let filename = format!("{}_{}.DAT", Utc::now().format("%d%m%Y"), self.file_counter);
+                    let filename = format!("docs/data/{}_{}.DAT", Utc::now().format("%d%m%Y"), self.file_counter);
                     
                     match File::create(&filename) {
                         Ok(mut file) => {
@@ -123,11 +123,11 @@ impl TransactionProcessor {
                             }
 
                             if success {
-                                // 2. Reseteo estricto del balance en memoria pedido por el challenge [cite: 59]
+                                // 2. Reseteo estricto del balance en memoria pedido por el challenge
                                 for client in self.clients.values_mut() {
                                     client.balance = Decimal::ZERO;
                                 }
-                                self.file_counter += 1; // Incrementamos contador para el próximo archivo [cite: 60]
+                                self.file_counter += 1; // Incrementamos contador para el próximo archivo
                                 let _ = respond_to.send(Ok(()));
                             } else {
                                 let _ = respond_to.send(Err(dto::errors::PaymentError::StorageError("Error al escribir en archivo".into())));
@@ -139,7 +139,13 @@ impl TransactionProcessor {
                     }
                     // --- TERMINA FLUJO ATÓMICO I/O ---
                 }
-                Command::GetBalance { client_id, respond_to } => todo!(),
+                Command::GetBalance { client_id, respond_to } => {
+                    if let Some(client) = self.clients.get(&client_id) {
+                        let _ = respond_to.send(Ok(client.clone()));
+                    } else {
+                        let _ = respond_to.send(Err(dto::errors::PaymentError::ClientNotFound));
+                    }
+                }
             }
         }
     }

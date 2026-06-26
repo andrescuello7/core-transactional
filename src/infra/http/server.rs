@@ -43,5 +43,8 @@ impl HttpServer {
 
 fn register_routes(cfg: &mut web::ServiceConfig) {
     cfg.route("/new_client", web::post().to(controllers::new_client::new_client));
+    cfg.route("/new_credit_transaction", web::post().to(controllers::new_credit_transaction::new_credit_transaction));
+    cfg.route("/new_debit_transaction", web::post().to(controllers::new_debit_transaction::new_debit_transaction));
+    cfg.route("/store_balances", web::post().to(controllers::store_balances::store_balances));
     cfg.route("/client_balance/{user_id}", web::get().to(controllers::get_client_balance::get_client_balance));
 }

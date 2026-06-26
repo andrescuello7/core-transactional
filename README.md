@@ -1,27 +1,32 @@
-## Mini Payment Processor
+# Prex
 
-Implementación de un procesador de pagos desarrollada en Rust.
+Prex es una API HTTP en Rust para gestionar clientes y operaciones simples de saldo.
 
-- Requisitos
-- Rust (última versión estable)
+## Como levantar el proyecto
+
+### Opcion 1: Local con Rust
+
+Requisitos:
+- Rust
 - Cargo
 
-### Ejecutar en desarrollo
-`cargo run`
+Pasos:
+1. Ejecutar: cargo run
+2. La API queda disponible en: http://localhost:8080
 
-La API quedará disponible en:
+### Opcion 2: Docker
 
-http://localhost:8080
+Pasos:
+1. Construir imagen: docker build -t prex:latest .
+2. Levantar contenedor: docker run --rm -p 8080:8080 prex:latest
 
-### Ejecutar en producción
+La API queda disponible en: http://localhost:8080
 
-`
 # Compilar el proyecto:
-cargo build --release
+`cargo build --release`
 
 # Ejecutar el binario generado:
-./target/release/mini-payment-processor
-`
+`./target/release/mini-payment-processor`
 
 ### Ejecutar los tests
 Correr los tests globalmente

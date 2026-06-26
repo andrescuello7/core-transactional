@@ -2,7 +2,7 @@ mod domain;
 mod infra;
 use infra::http::server;
 use tokio::sync::mpsc;
-use crate::infra::store::file_store::FileBalanceRepository;
+// use crate::infra::store::file_store::FileBalanceRepository;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -12,7 +12,7 @@ async fn main() -> std::io::Result<()> {
     let (tx, rx) = mpsc::channel(10000);
 
     // 2. Instanciamos el adaptador de salida de persistencia I/O
-    let repo = FileBalanceRepository::new();
+    // let repo = FileBalanceRepository::new();
 
     // 3. Inicializamos el Motor Transaccional del Dominio inyectándole el repositorio
     let processor = domain::processor::TransactionProcessor::new();

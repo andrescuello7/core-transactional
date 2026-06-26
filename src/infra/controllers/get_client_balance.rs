@@ -11,9 +11,9 @@ pub async fn get_client_balance(
     let client_id = path.into_inner();
     let (oneshot_tx, oneshot_rx) = oneshot::channel();
 
-    let _ = tx.send(Command::GetBalance { client_id, respond_to: oneshot_tx })
+    tx.send(Command::GetBalance { client_id, respond_to: oneshot_tx })
         .await
-        .map_err(|_| AppError::PersistenceError); 
+        .map_err(|_| AppError::PersistenceError("channel closed".to_string()))?; 
 
     let negocio_result = oneshot_rx.await
         .map_err(|e| AppError::PersistenceError(e.to_string()))?;
