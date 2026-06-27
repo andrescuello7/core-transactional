@@ -1,3 +1,2 @@
-pub mod repository;
 pub mod dto;
-pub mod processor;
+pub mod repository;

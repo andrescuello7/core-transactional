@@ -32,12 +32,6 @@ pub struct DebitTransaction {
     pub debit_amount: Decimal,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct TransactionPayload {
-    pub client_id: u64,
-    pub amount: Decimal,
-}
-
 impl Client {
     pub fn new(
         client_id: u64,
@@ -57,4 +51,3 @@ impl Client {
         }
     }
 }
-

@@ -1,37 +1,37 @@
-use actix_web::{web, middleware};
+use crate::infra::{controllers::{get_client_balance, new_client, new_credit_transaction,new_debit_transaction, store_balances}, storage::alloc_memory::Command};
+use actix_web::{middleware, web};
 use tokio::sync::mpsc;
-use crate::domain::processor::Command;
-use crate::infra::controllers; // Asumiendo que tus handlers viven aquí
 
 pub struct HttpServer {
     port: u16,
     host: String,
-    // Inyectamos el transmisor del canal como dependencia de infraestructura
-    tx: mpsc::Sender<Command>, 
+    tx: mpsc::Sender<Command>,
 }
 
 const DEFAULT_HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 8080;
 
 impl HttpServer {
-    pub fn new(port: u16, host: String, tx: mpsc::Sender<Command>) -> Self {
-        let host = if host.is_empty() { DEFAULT_HOST.to_string() } else { host };
-        let port = if port == 0 { DEFAULT_PORT } else { port };
+    pub fn new(tx: mpsc::Sender<Command>) -> Self {
+
+        let port: u16 = std::env::var("PORT")
+            .unwrap_or_else(|_| DEFAULT_PORT.to_string())
+            .parse()
+            .expect("PORT must be a valid u16");
+        let host = std::env::var("HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string());
         Self { port, host, tx }
     }
 
     pub async fn run(self) -> std::io::Result<()> {
         log::info!("HTTP server listening on {}:{}", self.host, self.port);
-        
+
         // Movemos el tx adentro del closure clonándolo por cada hilo de ejecución de Actix
         let tx_data = self.tx.clone();
 
         let server = actix_web::HttpServer::new(move || {
             actix_web::App::new()
                 .wrap(middleware::Logger::default())
-                // Inyección de dependencias nativa de Actix Web (App State)
                 .app_data(web::Data::new(tx_data.clone()))
-                .route("/", web::get().to(|| async { "Prex Core Transaction API Active" }))
                 .configure(register_routes)
         })
         .bind((self.host, self.port))?
@@ -42,9 +42,28 @@ impl HttpServer {
 }
 
 fn register_routes(cfg: &mut web::ServiceConfig) {
-    cfg.route("/new_client", web::post().to(controllers::new_client::new_client));
-    cfg.route("/new_credit_transaction", web::post().to(controllers::new_credit_transaction::new_credit_transaction));
-    cfg.route("/new_debit_transaction", web::post().to(controllers::new_debit_transaction::new_debit_transaction));
-    cfg.route("/store_balances", web::post().to(controllers::store_balances::store_balances));
-    cfg.route("/client_balance/{user_id}", web::get().to(controllers::get_client_balance::get_client_balance));
+    cfg.route(
+        "/",
+        web::get().to(|| async { "Prex Core Transaction API Active" }),
+    );
+    cfg.route(
+        "/client_balance/{user_id}",
+        web::get().to(get_client_balance::get_client_balance),
+    );
+    cfg.route(
+        "/new_client",
+        web::post().to(new_client::new_client),
+    );
+    cfg.route(
+        "/new_credit_transaction",
+        web::post().to(new_credit_transaction::new_credit_transaction),
+    );
+    cfg.route(
+        "/new_debit_transaction",
+        web::post().to(new_debit_transaction::new_debit_transaction),
+    );
+    cfg.route(
+        "/store_balances",
+        web::post().to(store_balances::store_balances),
+    );
 }

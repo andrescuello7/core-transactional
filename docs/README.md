@@ -13,10 +13,10 @@ Un ADR es un documento que responde principalmente a estas preguntas:
 
 ***Puntos importantes***
 - Conocimiento del lenguaje Rust.
-- Prolijidad. (Docs - Readme)
-- Buenas prácticas de programación. (solid - Clean Architecture)
-- Capacidad de investigación. (Arquitectura - Funcionamiento)
-- Pensamiento orientado a concurrencia y sistemas informáticos. (Threads - Procesos - Frameworks)
+- Prolijidad.
+- Buenas prácticas de programación. (solid, clean architecture, etc)
+- Capacidad de investigación. (arquitectura - funcionamiento)
+- Pensamiento orientado a concurrencia y sistemas informáticos. (Threads - Procesos - Memory)
 
 **POST /new_client**
 `{

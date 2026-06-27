@@ -1,16 +1,16 @@
+use crate::domain::dto;
+use chrono::{NaiveDate, Utc};
+use rust_decimal::Decimal;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
-use chrono::{NaiveDate, Utc};
 use tokio::sync::{mpsc, oneshot};
-use rust_decimal::Decimal;
-use crate::domain::dto; // Asumiendo tus structs base
 
 /// 1. DEFINICIÓN DE COMANDOS (Mensajes del Canal MPSC)
-/// Cada variante representa un caso de uso e incluye un canal `oneshot` 
+/// Cada variante representa un caso de uso e incluye un canal `oneshot`
 /// para devolver la respuesta al handler de Actix Web de forma asíncrona.
 pub enum Command {
-    GetBalance{
+    GetBalance {
         client_id: u64,
         respond_to: oneshot::Sender<Result<dto::client::Client, dto::errors::PaymentError>>,
     },
@@ -38,7 +38,7 @@ pub enum Command {
 }
 
 /// 2. EL ACTOR / MOTOR TRANSACTIONAL
-pub struct TransactionProcessor {
+pub struct Alloc {
     // El estado vive aquí en el Heap, CONFINADO a este struct.
     // Ningún otro hilo de la aplicación puede tocar este HashMap.
     clients: HashMap<u64, dto::client::Client>,
@@ -46,7 +46,7 @@ pub struct TransactionProcessor {
     file_counter: u32,
 }
 
-impl TransactionProcessor {
+impl Alloc {
     pub fn new() -> Self {
         Self {
             clients: HashMap::new(),
@@ -63,9 +63,19 @@ impl TransactionProcessor {
         // Mientras el canal esté abierto, procesa un mensaje a la vez
         while let Some(cmd) = receiver.recv().await {
             match cmd {
-                Command::CreateClient { document_number, client_name, birth_date, country, balance, respond_to } => {
+                Command::CreateClient {
+                    document_number,
+                    client_name,
+                    birth_date,
+                    country,
+                    balance,
+                    respond_to,
+                } => {
                     // Validación de documento único en la RAM (Rápido, sin Locks)
-                    let doc_exists = self.clients.values().any(|c| c.document_number == document_number);
+                    let doc_exists = self
+                        .clients
+                        .values()
+                        .any(|c| c.document_number == document_number);
                     if doc_exists {
                         let _ = respond_to.send(Err(dto::errors::PaymentError::DuplicateDocument));
                         continue;
@@ -74,13 +84,24 @@ impl TransactionProcessor {
                     let id = self.next_id;
                     self.next_id += 1;
 
-                    let new_client = dto::client::Client::new(id, client_name, birth_date, document_number, country, balance);
+                    let new_client = dto::client::Client::new(
+                        id,
+                        client_name,
+                        birth_date,
+                        document_number,
+                        country,
+                        balance,
+                    );
                     self.clients.insert(id, new_client);
 
                     let _ = respond_to.send(Ok(id));
                 }
 
-                Command::Credit { client_id, amount, respond_to } => {
+                Command::Credit {
+                    client_id,
+                    amount,
+                    respond_to,
+                } => {
                     if let Some(client) = self.clients.get_mut(&client_id) {
                         client.balance += amount; // Modificación directa y segura
                         let _ = respond_to.send(Ok(client.balance));
@@ -89,10 +110,15 @@ impl TransactionProcessor {
                     }
                 }
 
-                Command::Debit { client_id, amount, respond_to } => {
+                Command::Debit {
+                    client_id,
+                    amount,
+                    respond_to,
+                } => {
                     if let Some(client) = self.clients.get_mut(&client_id) {
                         if client.balance < amount {
-                            let _ = respond_to.send(Err(dto::errors::PaymentError::InsufficientFunds));
+                            let _ =
+                                respond_to.send(Err(dto::errors::PaymentError::InsufficientFunds));
                         } else {
                             client.balance -= amount;
                             let _ = respond_to.send(Ok(client.balance));
@@ -104,15 +130,19 @@ impl TransactionProcessor {
 
                 Command::StoreBalances { respond_to } => {
                     // --- COMIENZA FLUJO ATÓMICO I/O ---
-                    // Al procesarse de forma secuencial, mientras estemos en este bloque, 
+                    // Al procesarse de forma secuencial, mientras estemos en este bloque,
                     // ningún endpoint de Crédito/Débito puede alterar los saldos.
-                    
-                    let filename = format!("docs/data/{}_{}.DAT", Utc::now().format("%d%m%Y"), self.file_counter);
-                    
+
+                    let filename = format!(
+                        "docs/data/{}_{}.DAT",
+                        Utc::now().format("%d%m%Y"),
+                        self.file_counter
+                    );
+
                     match File::create(&filename) {
                         Ok(mut file) => {
                             let mut success = true;
-                            
+
                             // 1. Volcado secuencial al archivo plano
                             for (id, client) in self.clients.iter() {
                                 if let Err(e) = writeln!(file, "{} {}", id, client.balance) {
@@ -130,16 +160,24 @@ impl TransactionProcessor {
                                 self.file_counter += 1; // Incrementamos contador para el próximo archivo
                                 let _ = respond_to.send(Ok(()));
                             } else {
-                                let _ = respond_to.send(Err(dto::errors::PaymentError::StorageError("Error al escribir en archivo".into())));
+                                let _ =
+                                    respond_to.send(Err(dto::errors::PaymentError::StorageError(
+                                        "Error al escribir en archivo".into(),
+                                    )));
                             }
                         }
                         Err(_) => {
-                            let _ = respond_to.send(Err(dto::errors::PaymentError::StorageError("Error al crear archivo".into())));
+                            let _ = respond_to.send(Err(dto::errors::PaymentError::StorageError(
+                                "Error al crear archivo".into(),
+                            )));
                         }
                     }
                     // --- TERMINA FLUJO ATÓMICO I/O ---
                 }
-                Command::GetBalance { client_id, respond_to } => {
+                Command::GetBalance {
+                    client_id,
+                    respond_to,
+                } => {
                     if let Some(client) = self.clients.get(&client_id) {
                         let _ = respond_to.send(Ok(client.clone()));
                     } else {

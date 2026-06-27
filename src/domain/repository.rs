@@ -1,17 +1,9 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU32, Ordering};
-
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 
 use crate::domain::dto;
 use crate::infra::errors::AppError;
-
-static FILE_COUNTER: AtomicU32 = AtomicU32::new(1);
-
-pub fn next_file_counter() -> u32 {
-    FILE_COUNTER.fetch_add(1, Ordering::SeqCst)
-}
 
 pub struct AppState {
     clients: HashMap<u64, dto::client::Client>,
