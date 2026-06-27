@@ -10,7 +10,7 @@ Para resolver esto, se evaluaron varias alternativas de sincronización —inclu
 - **Persistencia híbrida**: Balances en RAM para operaciones rápidas + persistencia en disco bajo demanda
 - **Concurrencia segura**: Manejo de múltiples clientes simultáneamente sin locks contención
 ---
-<img width="1029" height="613" alt="Captura de pantalla 2026-06-27 a la(s) 12 18 19 p  m" src="https://github.com/user-attachments/assets/72757645-a1fd-402b-945b-7f70ce9c7f4b" />
+<img width="925" height="546" alt="Captura de pantalla 2026-06-27 a la(s) 12 47 53 p  m" src="https://github.com/user-attachments/assets/ffce64c8-cdc8-4604-bdf4-83647aa235cf" />
 
 
 ### Algunas Características Clave
