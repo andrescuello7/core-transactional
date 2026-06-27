@@ -115,5 +115,12 @@ cargo test domain::
 ```
 ---
 
+### Links de Referencia
+- https://docs.rs/tokio/latest/tokio/sync/mpsc/fn.channel.html
+- https://doc.rust-lang.org/nomicon/vec/vec-alloc.html?search=
+- https://tokio.rs/tokio/tutorial/channels
+- https://doc.rust-lang.org/std/sync/struct.RwLock.html
+- https://github.com/xacrimon/dashmap
+
+---
 **Author:** Andres Cuello
-```
