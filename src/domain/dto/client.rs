@@ -2,7 +2,6 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer, Serialize};
 
-/// Custom deserializer for Decimal that handles both string and number formats
 fn deserialize_decimal<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where
     D: Deserializer<'de>,
@@ -14,7 +13,6 @@ where
     match value {
         Value::String(s) => Decimal::from_str_exact(&s).map_err(D::Error::custom),
         Value::Number(n) => {
-            // Convert number to string first, then parse as Decimal
             Decimal::from_str_exact(&n.to_string()).map_err(D::Error::custom)
         }
         _ => Err(D::Error::custom("expected string or number for Decimal")),

@@ -2,7 +2,6 @@ use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use serde_json::json;
 use std::fmt;
 
-/// Errores de negocio centralizados en domain
 #[derive(Debug)]
 pub enum PaymentError {
     ClientNotFound,

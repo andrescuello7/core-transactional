@@ -1106,6 +1106,7 @@ dependencies = [
 name = "prex"
 version = "0.0.4"
 dependencies = [
+ "actix-http",
  "actix-web",
  "chrono",
  "env_logger",

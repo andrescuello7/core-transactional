@@ -1,4 +1,11 @@
-use crate::infra::{controllers::{get_client_balance, new_client, new_credit_transaction,new_debit_transaction, store_balances}, storage::alloc_memory::Command};
+use crate::infra::{storage::alloc_memory::Command};
+use crate::domain::{repositories::{
+    get_client_balance, 
+    new_client, 
+    new_credit_transaction,
+    new_debit_transaction, 
+    store_balances
+}};
 use actix_web::{middleware, web};
 use tokio::sync::mpsc;
 
@@ -8,24 +15,21 @@ pub struct HttpServer {
     tx: mpsc::Sender<Command>,
 }
 
-const DEFAULT_HOST: &str = "127.0.0.1";
-const DEFAULT_PORT: u16 = 8080;
-
 impl HttpServer {
     pub fn new(tx: mpsc::Sender<Command>) -> Self {
+        const DEFAULT_HOST: &str = "127.0.0.1";
+        const DEFAULT_PORT: u16 = 8080;
 
         let port: u16 = std::env::var("PORT")
-            .unwrap_or_else(|_| DEFAULT_PORT.to_string())
-            .parse()
-            .expect("PORT must be a valid u16");
+            .map_err(|_| DEFAULT_PORT.to_string())
+            .and_then(|p| p.parse().map_err(|_| DEFAULT_PORT.to_string()))
+            .unwrap_or_else(|_| DEFAULT_PORT);
         let host = std::env::var("HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string());
         Self { port, host, tx }
     }
 
     pub async fn run(self) -> std::io::Result<()> {
         log::info!("HTTP server listening on {}:{}", self.host, self.port);
-
-        // Movemos el tx adentro del closure clonándolo por cada hilo de ejecución de Actix
         let tx_data = self.tx.clone();
 
         let server = actix_web::HttpServer::new(move || {
@@ -41,7 +45,7 @@ impl HttpServer {
     }
 }
 
-fn register_routes(cfg: &mut web::ServiceConfig) {
+pub fn register_routes(cfg: &mut web::ServiceConfig) {
     cfg.route(
         "/",
         web::get().to(|| async { "Prex Core Transaction API Active" }),

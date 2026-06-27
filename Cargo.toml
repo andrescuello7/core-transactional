@@ -13,3 +13,14 @@ rust_decimal = { version = "1.30", features = ["serde-str"] }
 chrono = { version = "0.4", features = ["serde"] }
 env_logger = "0.10"
 log = "0.4"
+
+[dev-dependencies]
+actix-http = "3"
+
+[[test]]
+name = "unit-server-http"
+path = "tests/unit/server-http.rs"
+
+[[test]]
+name = "integration-flows"
+path = "tests/integration/flows.rs"
