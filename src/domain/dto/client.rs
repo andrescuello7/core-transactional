@@ -1,6 +1,25 @@
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+
+/// Custom deserializer for Decimal that handles both string and number formats
+fn deserialize_decimal<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde::de::Error;
+    use serde_json::Value;
+
+    let value = Value::deserialize(deserializer)?;
+    match value {
+        Value::String(s) => Decimal::from_str_exact(&s).map_err(D::Error::custom),
+        Value::Number(n) => {
+            // Convert number to string first, then parse as Decimal
+            Decimal::from_str_exact(&n.to_string()).map_err(D::Error::custom)
+        }
+        _ => Err(D::Error::custom("expected string or number for Decimal")),
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Client {
@@ -9,6 +28,7 @@ pub struct Client {
     pub client_name: String,
     pub birth_date: NaiveDate,
     pub country: String,
+    #[serde(deserialize_with = "deserialize_decimal")]
     pub balance: Decimal,
 }
 
@@ -23,31 +43,13 @@ pub struct NewClientPayload {
 #[derive(Debug, Deserialize)]
 pub struct CreditTransaction {
     pub client_id: u64,
+    #[serde(deserialize_with = "deserialize_decimal")]
     pub credit_amount: Decimal,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct DebitTransaction {
     pub client_id: u64,
+    #[serde(deserialize_with = "deserialize_decimal")]
     pub debit_amount: Decimal,
-}
-
-impl Client {
-    pub fn new(
-        client_id: u64,
-        client_name: String,
-        birth_date: NaiveDate,
-        document_number: String,
-        country: String,
-        balance: Decimal,
-    ) -> Self {
-        Self {
-            client_id,
-            document_number,
-            client_name,
-            birth_date,
-            country,
-            balance,
-        }
-    }
 }

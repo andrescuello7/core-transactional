@@ -47,7 +47,7 @@ fn register_routes(cfg: &mut web::ServiceConfig) {
         web::get().to(|| async { "Prex Core Transaction API Active" }),
     );
     cfg.route(
-        "/client_balance/{user_id}",
+        "/client_balance/{client_id}",
         web::get().to(get_client_balance::get_client_balance),
     );
     cfg.route(

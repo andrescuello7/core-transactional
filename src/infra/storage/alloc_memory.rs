@@ -1,4 +1,5 @@
 use crate::domain::dto;
+use crate::domain::errors::PaymentError;
 use chrono::{NaiveDate, Utc};
 use rust_decimal::Decimal;
 use std::collections::HashMap;
@@ -12,28 +13,27 @@ use tokio::sync::{mpsc, oneshot};
 pub enum Command {
     GetBalance {
         client_id: u64,
-        respond_to: oneshot::Sender<Result<dto::client::Client, dto::errors::PaymentError>>,
+        respond_to: oneshot::Sender<Result<dto::client::Client, PaymentError>>,
     },
     CreateClient {
         document_number: String,
         client_name: String,
         birth_date: NaiveDate,
         country: String,
-        balance: Decimal,
-        respond_to: oneshot::Sender<Result<u64, dto::errors::PaymentError>>,
+        respond_to: oneshot::Sender<Result<u64, PaymentError>>,
     },
     Credit {
         client_id: u64,
         amount: Decimal,
-        respond_to: oneshot::Sender<Result<Decimal, dto::errors::PaymentError>>,
+        respond_to: oneshot::Sender<Result<Decimal, PaymentError>>,
     },
     Debit {
         client_id: u64,
         amount: Decimal,
-        respond_to: oneshot::Sender<Result<Decimal, dto::errors::PaymentError>>,
+        respond_to: oneshot::Sender<Result<Decimal, PaymentError>>,
     },
     StoreBalances {
-        respond_to: oneshot::Sender<Result<(), dto::errors::PaymentError>>,
+        respond_to: oneshot::Sender<Result<(), PaymentError>>,
     },
 }
 
@@ -46,13 +46,21 @@ pub struct Alloc {
     file_counter: u32,
 }
 
-impl Alloc {
-    pub fn new() -> Self {
+impl Default for Alloc {
+    fn default() -> Self {
         Self {
             clients: HashMap::new(),
             next_id: 1,
-            file_counter: 1, // Contador histórico requerido para el nombre del archivo
+            file_counter: 1,
         }
+    }
+}
+
+impl Alloc {
+    pub fn new() -> Self {
+        // Ensure docs/data directory exists
+        let _ = std::fs::create_dir_all("docs/data");
+        Self::default()
     }
 
     /// 3. EL BUCLE ASÍNCRONO CENTRAL (Tokio Task Loop)
@@ -68,30 +76,30 @@ impl Alloc {
                     client_name,
                     birth_date,
                     country,
-                    balance,
                     respond_to,
                 } => {
                     // Validación de documento único en la RAM (Rápido, sin Locks)
                     let doc_exists = self
                         .clients
                         .values()
-                        .any(|c| c.document_number == document_number);
+                        .any(|_| self.clients.values().any(|c| c.document_number == document_number)
+);
                     if doc_exists {
-                        let _ = respond_to.send(Err(dto::errors::PaymentError::DuplicateDocument));
+                        let _ = respond_to.send(Err(PaymentError::DuplicateDocument));
                         continue;
                     }
 
                     let id = self.next_id;
                     self.next_id += 1;
 
-                    let new_client = dto::client::Client::new(
-                        id,
+                    let new_client = dto::client::Client {
+                        client_id: id,
                         client_name,
                         birth_date,
                         document_number,
                         country,
-                        balance,
-                    );
+                        balance: Decimal::ZERO,
+                    };
                     self.clients.insert(id, new_client);
 
                     let _ = respond_to.send(Ok(id));
@@ -102,11 +110,13 @@ impl Alloc {
                     amount,
                     respond_to,
                 } => {
-                    if let Some(client) = self.clients.get_mut(&client_id) {
+                    if amount <= Decimal::ZERO {
+                        let _ = respond_to.send(Err(PaymentError::NegativeAmount));
+                    } else if let Some(client) = self.clients.get_mut(&client_id) {
                         client.balance += amount; // Modificación directa y segura
                         let _ = respond_to.send(Ok(client.balance));
                     } else {
-                        let _ = respond_to.send(Err(dto::errors::PaymentError::ClientNotFound));
+                        let _ = respond_to.send(Err(PaymentError::ClientNotFound));
                     }
                 }
 
@@ -115,24 +125,22 @@ impl Alloc {
                     amount,
                     respond_to,
                 } => {
-                    if let Some(client) = self.clients.get_mut(&client_id) {
+                    if amount <= Decimal::ZERO {
+                        let _ = respond_to.send(Err(PaymentError::NegativeAmount));
+                    } else if let Some(client) = self.clients.get_mut(&client_id) {
                         if client.balance < amount {
                             let _ =
-                                respond_to.send(Err(dto::errors::PaymentError::InsufficientFunds));
+                                respond_to.send(Err(PaymentError::InsufficientFunds));
                         } else {
                             client.balance -= amount;
                             let _ = respond_to.send(Ok(client.balance));
                         }
                     } else {
-                        let _ = respond_to.send(Err(dto::errors::PaymentError::ClientNotFound));
+                        let _ = respond_to.send(Err(PaymentError::ClientNotFound));
                     }
                 }
 
                 Command::StoreBalances { respond_to } => {
-                    // --- COMIENZA FLUJO ATÓMICO I/O ---
-                    // Al procesarse de forma secuencial, mientras estemos en este bloque,
-                    // ningún endpoint de Crédito/Débito puede alterar los saldos.
-
                     let filename = format!(
                         "docs/data/{}_{}.DAT",
                         Utc::now().format("%d%m%Y"),
@@ -142,8 +150,6 @@ impl Alloc {
                     match File::create(&filename) {
                         Ok(mut file) => {
                             let mut success = true;
-
-                            // 1. Volcado secuencial al archivo plano
                             for (id, client) in self.clients.iter() {
                                 if let Err(e) = writeln!(file, "{} {}", id, client.balance) {
                                     log::error!("Error escribiendo en archivo: {}", e);
@@ -153,7 +159,6 @@ impl Alloc {
                             }
 
                             if success {
-                                // 2. Reseteo estricto del balance en memoria pedido por el challenge
                                 for client in self.clients.values_mut() {
                                     client.balance = Decimal::ZERO;
                                 }
@@ -161,18 +166,17 @@ impl Alloc {
                                 let _ = respond_to.send(Ok(()));
                             } else {
                                 let _ =
-                                    respond_to.send(Err(dto::errors::PaymentError::StorageError(
+                                    respond_to.send(Err(PaymentError::StorageError(
                                         "Error al escribir en archivo".into(),
                                     )));
                             }
                         }
-                        Err(_) => {
-                            let _ = respond_to.send(Err(dto::errors::PaymentError::StorageError(
-                                "Error al crear archivo".into(),
+                        Err(e) => {
+                            let _ = respond_to.send(Err(PaymentError::StorageError(
+                                {log::error!("...{}", e); e.to_string().into()},
                             )));
                         }
                     }
-                    // --- TERMINA FLUJO ATÓMICO I/O ---
                 }
                 Command::GetBalance {
                     client_id,
@@ -181,7 +185,7 @@ impl Alloc {
                     if let Some(client) = self.clients.get(&client_id) {
                         let _ = respond_to.send(Ok(client.clone()));
                     } else {
-                        let _ = respond_to.send(Err(dto::errors::PaymentError::ClientNotFound));
+                        let _ = respond_to.send(Err(PaymentError::ClientNotFound));
                     }
                 }
             }

@@ -2,11 +2,13 @@ use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use serde_json::json;
 use std::fmt;
 
+/// Errores de negocio centralizados en domain
 #[derive(Debug)]
 pub enum PaymentError {
     ClientNotFound,
     DuplicateDocument,
     InsufficientFunds,
+    NegativeAmount,
     StorageError(String),
 }
 
@@ -23,6 +25,9 @@ impl fmt::Display for PaymentError {
             PaymentError::StorageError(err) => {
                 write!(f, "Error crítico de persistencia en disco: {}", err)
             }
+            PaymentError::NegativeAmount => {
+                write!(f, "El monto de la transacción no puede ser negativo.")
+            }
         }
     }
 }
@@ -30,14 +35,14 @@ impl fmt::Display for PaymentError {
 impl ResponseError for PaymentError {
     fn status_code(&self) -> StatusCode {
         match self {
-            PaymentError::ClientNotFound => StatusCode::NOT_FOUND, // 404
-            PaymentError::DuplicateDocument => StatusCode::BAD_REQUEST, // 400
-            PaymentError::InsufficientFunds => StatusCode::BAD_REQUEST, // 400
-            PaymentError::StorageError(_) => StatusCode::INTERNAL_SERVER_ERROR, // 500
+            PaymentError::ClientNotFound => StatusCode::NOT_FOUND,
+            PaymentError::DuplicateDocument => StatusCode::BAD_REQUEST,
+            PaymentError::InsufficientFunds => StatusCode::BAD_REQUEST,
+            PaymentError::NegativeAmount => StatusCode::BAD_REQUEST,
+            PaymentError::StorageError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
-    // Estructura el JSON de respuesta que verá el cliente final o la colección de Postman
     fn error_response(&self) -> HttpResponse {
         let status = self.status_code();
 
@@ -47,6 +52,7 @@ impl ResponseError for PaymentError {
                 PaymentError::ClientNotFound => "CLIENT_NOT_FOUND",
                 PaymentError::DuplicateDocument => "DUPLICATED_DOCUMENT",
                 PaymentError::InsufficientFunds => "INSUFFICIENT_FUNDS",
+                PaymentError::NegativeAmount => "NEGATIVE_AMOUNT",
                 PaymentError::StorageError(_) => "INTERNAL_PERSISTENCE_ERROR",
             },
             "message": self.to_string()
