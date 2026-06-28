@@ -7,6 +7,7 @@ use std::fs::File;
 use std::io::Write;
 use tokio::sync::{mpsc, oneshot};
 
+// Command enum represents the different operations that can be performed on the Alloc service.
 pub enum Command {
     GetBalance {
         client_id: u64,
@@ -34,6 +35,10 @@ pub enum Command {
     },
 }
 
+// Alloc struct represents the in-memory storage service that manages clients and their balances.
+// clients: HashMap<u64, dto::client::Client> - A HashMap that stores clients with their unique IDs as keys.
+// next_id: u64 - A counter to generate unique IDs for new clients.
+// file_counter: u32 - A counter to generate unique filenames when storing balances to a file
 pub struct Alloc {
     clients: HashMap<u64, dto::client::Client>,
     next_id: u64,
@@ -51,16 +56,27 @@ impl Default for Alloc {
 }
 
 impl Alloc {
+    // Create directory for storing balance files IF DOESN'T EXIST and return a new instance of Alloc.
     pub fn new() -> Self {
         let _ = std::fs::create_dir_all("docs/data");
         Self::default()
     }
 
     pub async fn run(mut self, mut receiver: mpsc::Receiver<Command>) {
-        log::info!("Motor Transaccional iniciado exitosamente.");
+        log::info!("Core Transaccional iniciado exitosamente.");
 
         while let Some(cmd) = receiver.recv().await {
             match cmd {
+                Command::GetBalance {
+                    client_id,
+                    respond_to,
+                } => {
+                    if let Some(client) = self.clients.get(&client_id) {
+                        let _ = respond_to.send(Ok(client.clone()));
+                    } else {
+                        let _ = respond_to.send(Err(PaymentError::ClientNotFound));
+                    }
+                }
                 Command::CreateClient {
                     document_number,
                     client_name,
@@ -92,7 +108,6 @@ impl Alloc {
 
                     let _ = respond_to.send(Ok(id));
                 }
-
                 Command::Credit {
                     client_id,
                     amount,
@@ -138,7 +153,10 @@ impl Alloc {
                     match File::create(&filename) {
                         Ok(mut file) => {
                             let mut success = true;
+
+                            // store each client in the file with the format: "client_id balance"
                             for (id, client) in self.clients.iter() {
+                                // Write the client ID and balance to the file, separated by a space.
                                 if let Err(e) = writeln!(file, "{} {}", id, client.balance) {
                                     log::error!("Error escribiendo en archivo: {}", e);
                                     success = false;
@@ -148,6 +166,7 @@ impl Alloc {
 
                             if success {
                                 for client in self.clients.values_mut() {
+                                    // Reset the balance to zero after storing it in the file.
                                     client.balance = Decimal::ZERO;
                                 }
                                 self.file_counter += 1;
@@ -164,16 +183,6 @@ impl Alloc {
                                 {log::error!("...{}", e); e.to_string().into()},
                             )));
                         }
-                    }
-                }
-                Command::GetBalance {
-                    client_id,
-                    respond_to,
-                } => {
-                    if let Some(client) = self.clients.get(&client_id) {
-                        let _ = respond_to.send(Ok(client.clone()));
-                    } else {
-                        let _ = respond_to.send(Err(PaymentError::ClientNotFound));
                     }
                 }
             }

@@ -112,6 +112,9 @@ cargo test -- --nocapture
 
 # Ejecutar tests de un módulo
 cargo test domain::
+
+# Ejecutar el test concurrente
+cargo run --bin stress_test
 ```
 ---
 

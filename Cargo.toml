@@ -13,6 +13,7 @@ rust_decimal = { version = "1.30", features = ["serde-str"] }
 chrono = { version = "0.4", features = ["serde"] }
 env_logger = "0.10"
 log = "0.4"
+reqwest = { version = "0.12", features = ["json"] }
 
 [dev-dependencies]
 actix-http = "3"
