@@ -1,4 +1,4 @@
-## Arquitecurea Hexagonal
+## Hexagonal Architecture
 
 Para este challenge en particular, la Arquitectura Hexagonal no es solo una decisión estética; resuelve de manera brillante los requerimientos específicos de concurrencia, persistencia en archivos y testing.  
 

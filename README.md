@@ -52,7 +52,7 @@ git clone https://github.com/andrescuello7/core-transactional
 cd /core-transactional
 
 # Ejecutar en modo debug
-cargo run
+cargo run --bin core-transactional
 
 # Output esperado
 # INFO [main] HTTP server listening on 127.0.0.1:8080
@@ -112,6 +112,10 @@ cargo test -- --nocapture
 
 # Ejecutar tests de un módulo
 cargo test domain::
+
+# Ejecutar el test concurrente
+cargo run --bin core-transactional
+cargo run --bin stress_test
 ```
 ---
 
