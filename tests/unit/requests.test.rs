@@ -1,6 +1,6 @@
 use actix_web::{test, web, App};
-use prex::infra::http::server::register_routes;
-use prex::infra::storage::alloc_memory::{Alloc, Command};
+use core-transactional::infra::http::server::register_routes;
+use core-transactional::infra::storage::alloc_memory::{Alloc, Command};
 use serde_json::{json, Value};
 use tokio::sync::mpsc;
 

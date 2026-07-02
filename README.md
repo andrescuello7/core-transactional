@@ -80,14 +80,14 @@ cargo build --release
 
 ```bash
 # Construir imagen
-docker build -t prex:latest .
+docker build -t core-transactional:latest .
 
 # Ejecutar contenedor
 docker run \
   --rm \
   -p 8080:8080 \
   -e RUST_LOG=info \
-  prex:latest
+  core-transactional:latest
 
 # Con persistencia de volumen
 docker run \
@@ -96,7 +96,7 @@ docker run \
   -v $(pwd)/docs/data:/app/docs/data \
   -e HOST=0.0.0.0 \
   -e PORT=8080 \
-  prex:latest
+  core-transactional:latest
 ```
 
 ## Ejecutar los Tests

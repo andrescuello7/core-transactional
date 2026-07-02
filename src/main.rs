@@ -1,9 +1,7 @@
-use prex::infra::http::server::HttpServer;
-use prex::infra::storage::alloc_memory::Alloc;
+use core_transactional::infra::http::server::HttpServer;
+use core_transactional::infra::storage::alloc_memory::Alloc;
 use tokio::sync::mpsc;
 
-//
-//
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     // Initialize the logger, you can use other loggers if you want.
